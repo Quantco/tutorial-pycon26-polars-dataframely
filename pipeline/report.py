@@ -1,4 +1,5 @@
 import polars as pl
+
 from .data import PreprocessedData
 from ._internal import Report
 
@@ -19,8 +20,13 @@ def find_three_most_popular_make_and_models[T: (pl.DataFrame, pl.LazyFrame)](
     Returns:
         A dataframe with three rows and three columns (make, model, count).
     """
-    # TODO: Implement this function
-    raise NotImplementedError
+    return (
+        policies.join(models, on="model")
+        .group_by("make", "model")
+        .agg(count=pl.len())
+        .sort("count", descending=True)
+        .head(3)
+    )
 
 
 def find_safest_models[T: (pl.DataFrame, pl.LazyFrame)](models: T) -> T:
@@ -29,8 +35,13 @@ def find_safest_models[T: (pl.DataFrame, pl.LazyFrame)](models: T) -> T:
     Returns:
         A data frame with five rows and three columns (model, segment, safety_score).
     """
-    # TODO: Implement this function
-    raise NotImplementedError
+    return (
+        models.select(
+            "model", "segment", safety_score=pl.sum_horizontal(pl.col(pl.Boolean))
+        )
+        .sort("safety_score", descending=True)
+        .head(5)
+    )
 
 
 def find_average_car_volume_by_age[T: (pl.DataFrame, pl.LazyFrame)](
@@ -45,7 +56,16 @@ def find_average_car_volume_by_age[T: (pl.DataFrame, pl.LazyFrame)](
         A data frame with three columns (age block, mean volume in cubic meters,
         relative change of mean volume relative to the previous age block in percent).
     """
-    # TODO: Implement this function.
-    # Tip: Pay attention to numeric data types when performing calculations
-    # Tip: Consider https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.cut.html
-    raise NotImplementedError
+    volume = pl.col("length").cast(pl.UInt64) * pl.col("width") * pl.col("height")
+    return (
+        policies.join(models, on="model")
+        .group_by(pl.col("age_of_car").cut(range(10, 100, 10)))
+        .agg(volume=volume.mean() * 1e-9)
+        .with_columns(
+            change=100
+            * (
+                pl.col("volume") / pl.col("volume").shift().over(order_by="age_of_car")
+                - 1
+            )
+        )
+    )
