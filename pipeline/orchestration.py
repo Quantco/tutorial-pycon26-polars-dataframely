@@ -1,6 +1,6 @@
 from .data import RawData
-from .report import Report, build_report
 from .preprocess import preprocess
+from .report import Report, build_report
 
 
 def run_pipeline(raw: RawData) -> Report:

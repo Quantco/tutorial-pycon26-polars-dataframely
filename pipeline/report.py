@@ -1,7 +1,7 @@
 import polars as pl
 
-from .data import PreprocessedData
 from ._internal import Report
+from .data import PreprocessedData
 
 
 def build_report(prep: PreprocessedData) -> Report:
