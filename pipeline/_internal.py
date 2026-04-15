@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 import polars as pl
 import dataframely as dy
 from .schema.report import (

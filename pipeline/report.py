@@ -1,15 +1,14 @@
 import polars as pl
 import dataframely as dy
 
+from ._internal import Report
 from .data import PreprocessedData
+from .schema.preprocessed import PrepModelsSchema, PrepPoliciesSchema
 from .schema.report import (
-    PopularModelsSchema,
     AverageCarVolumeSchema,
+    PopularModelsSchema,
     SafestModelsSchema,
 )
-from .schema.preprocessed import PrepModelsSchema, PrepPoliciesSchema
-
-from ._internal import Report
 
 
 def build_report(prep: PreprocessedData) -> Report:
