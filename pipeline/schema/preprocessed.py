@@ -1,4 +1,5 @@
 import dataframely as dy
+import polars as pl
 
 
 class PrepPoliciesSchema(dy.Schema):
@@ -51,3 +52,12 @@ class PrepModelsSchema(dy.Schema):
     max_torque_rpm = dy.UInt16()
     max_power_bhp = dy.Float32()
     max_power_rpm = dy.UInt16()
+
+    @dy.rule()
+    def volume_is_realistic(cls) -> pl.Expr:
+        """Only allow reasonably sized cars"""
+        volume = cls.length.col * cls.width.col * cls.height.col
+
+        # Lengths are in millimeters and 1e9 mm^3 is 1 cubic meter
+        cubic_meter = 1e9
+        return volume.is_between(1 * cubic_meter, 20 * cubic_meter)
