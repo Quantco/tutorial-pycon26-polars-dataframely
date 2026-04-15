@@ -1,6 +1,8 @@
 import polars as pl
-
+import dataframely as dy
 from .data import PreprocessedData, RawData
+from .schema.preprocessed import PrepModelsSchema, PrepPoliciesSchema
+from .schema.raw import RawModelsSchema, RawPoliciesSchema
 
 
 def preprocess(raw: RawData) -> PreprocessedData:
@@ -10,7 +12,9 @@ def preprocess(raw: RawData) -> PreprocessedData:
     )
 
 
-def preprocess_policies[T: (pl.DataFrame, pl.LazyFrame)](policies: T) -> T:
+def preprocess_policies(
+    policies: dy.LazyFrame[RawPoliciesSchema],
+) -> dy.LazyFrame[PrepPoliciesSchema]:
     """Transform the raw policies for optimal representation."""
     return policies.with_columns(
         # Categorical columns
@@ -24,14 +28,19 @@ def preprocess_policies[T: (pl.DataFrame, pl.LazyFrame)](policies: T) -> T:
         pl.col("population_density").cast(pl.Float32),
         # Normalize ID
         pl.col("policy_id").str.strip_prefix("policy").cast(pl.UInt64),
-    )
+    ).pipe(PrepPoliciesSchema.validate, cast=True, eager=False)
 
 
-def preprocess_models[T: (pl.DataFrame, pl.LazyFrame)](models: T) -> T:
+def preprocess_models(
+    models: dy.LazyFrame[RawModelsSchema],
+) -> dy.LazyFrame[PrepModelsSchema]:
     """Transform the raw models for optimal representation."""
 
+    # Unique to drop duplicate rows we found while investigating primary key failures
+    df = models.unique()
+
     # 1. Convert semantically boolean columns from pl.String to pl.Boolean
-    df = models.with_columns(pl.col("^is_.*$") == "Yes")
+    df = df.with_columns(pl.col("^is_.*$") == "Yes")
 
     # 2. Split max torque and power into components
     torque_parts = pl.col("max_torque").str.split("@")
@@ -68,4 +77,14 @@ def preprocess_models[T: (pl.DataFrame, pl.LazyFrame)](models: T) -> T:
         pl.col("airbags").cast(pl.UInt8),
     )
 
-    return df
+    # Step 4: Ensure that length / width / height are in millimeters, not centimeters
+    def _ensure_mm(col: pl.Expr):
+        return pl.when(col < 1_000).then(col * 10).otherwise(col)
+
+    df = df.with_columns(
+        _ensure_mm(pl.col("length")),
+        _ensure_mm(pl.col("width")),
+        _ensure_mm(pl.col("height")),
+    )
+
+    return df.pipe(PrepModelsSchema.validate, cast=True, eager=False)

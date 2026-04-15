@@ -1,6 +1,14 @@
 import polars as pl
+import dataframely as dy
 
 from .data import PreprocessedData
+from .schema.report import (
+    PopularModelsSchema,
+    AverageCarVolumeSchema,
+    SafestModelsSchema,
+)
+from .schema.preprocessed import PrepModelsSchema, PrepPoliciesSchema
+
 from ._internal import Report
 
 
@@ -12,9 +20,9 @@ def build_report(prep: PreprocessedData) -> Report:
     )
 
 
-def find_three_most_popular_make_and_models[T: (pl.DataFrame, pl.LazyFrame)](
-    models: T, policies: T
-) -> T:
+def find_three_most_popular_make_and_models(
+    models: dy.LazyFrame[PrepModelsSchema], policies: dy.LazyFrame[PrepPoliciesSchema]
+) -> dy.LazyFrame[PopularModelsSchema]:
     """Among all policies, compute the three make/model combinations that appears most often.
 
     Returns:
@@ -26,10 +34,13 @@ def find_three_most_popular_make_and_models[T: (pl.DataFrame, pl.LazyFrame)](
         .agg(count=pl.len())
         .sort("count", descending=True)
         .head(3)
+        .pipe(PopularModelsSchema.validate, cast=True, eager=False)
     )
 
 
-def find_safest_models[T: (pl.DataFrame, pl.LazyFrame)](models: T) -> T:
+def find_safest_models(
+    models: dy.LazyFrame[PrepModelsSchema],
+) -> dy.LazyFrame[SafestModelsSchema]:
     """Among all models, find the safest ones as measured by the number of safety features.
 
     Returns:
@@ -41,12 +52,13 @@ def find_safest_models[T: (pl.DataFrame, pl.LazyFrame)](models: T) -> T:
         )
         .sort("safety_score", descending=True)
         .head(5)
+        .pipe(SafestModelsSchema.validate, cast=True, eager=False)
     )
 
 
-def find_average_car_volume_by_age[T: (pl.DataFrame, pl.LazyFrame)](
-    models: T, policies: T
-) -> T:
+def find_average_car_volume_by_age(
+    models: dy.LazyFrame[PrepModelsSchema], policies: dy.LazyFrame[PrepPoliciesSchema]
+) -> dy.LazyFrame[AverageCarVolumeSchema]:
     """Among all policies, find the mean physical car volume in 10-year blocks of car age.
 
     This method should compute the volume of a car if interpreted as cuboid (i.e. box-shaped).
@@ -68,4 +80,6 @@ def find_average_car_volume_by_age[T: (pl.DataFrame, pl.LazyFrame)](
                 - 1
             )
         )
+        .sort("age_of_car")
+        .pipe(AverageCarVolumeSchema.validate, cast=True, eager=False)
     )

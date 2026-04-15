@@ -1,15 +1,17 @@
 from dataclasses import dataclass
+import dataframely as dy
 
-import polars as pl
-
-
-@dataclass
-class RawData[T: (pl.DataFrame | pl.LazyFrame)]:
-    models: T
-    policies: T
+from .schema.preprocessed import PrepPoliciesSchema, PrepModelsSchema
+from .schema.raw import RawModelsSchema, RawPoliciesSchema
 
 
 @dataclass
-class PreprocessedData[T: (pl.DataFrame | pl.LazyFrame)]:
-    models: T
-    policies: T
+class RawData:
+    models: dy.LazyFrame[RawModelsSchema]
+    policies: dy.LazyFrame[RawPoliciesSchema]
+
+
+@dataclass
+class PreprocessedData:
+    models: dy.LazyFrame[PrepModelsSchema]
+    policies: dy.LazyFrame[PrepPoliciesSchema]

@@ -1,24 +1,28 @@
 from dataclasses import dataclass
 import polars as pl
+import dataframely as dy
+from .schema.report import (
+    AverageCarVolumeSchema,
+    PopularModelsSchema,
+    SafestModelsSchema,
+)
 
 
 @dataclass
 class Report:
-    popularity: pl.DataFrame | pl.LazyFrame
-    safety: pl.DataFrame | pl.LazyFrame
-    volume: pl.DataFrame | pl.LazyFrame
+    popularity: dy.LazyFrame[PopularModelsSchema]
+    safety: dy.LazyFrame[SafestModelsSchema]
+    volume: dy.LazyFrame[AverageCarVolumeSchema]
 
     def to_string(self) -> str:
         """
         Create a pretty-printable representation of this report.
         """
-        # Enforce laziness and collection here to ensure we are
-        #
         df_popularity, df_volume, df_safety = pl.collect_all(
             [
-                self.popularity.lazy(),
-                self.volume.lazy().sort("age_of_car"),
-                self.safety.lazy(),
+                self.popularity,
+                self.volume,
+                self.safety,
             ]
         )
         header = [
