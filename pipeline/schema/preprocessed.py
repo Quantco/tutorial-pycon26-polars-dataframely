@@ -56,7 +56,7 @@ class PrepModelsSchema(dy.Schema):
     @dy.rule()
     def volume_is_realistic(cls) -> pl.Expr:
         """Only allow reasonably sized cars"""
-        volume = cls.length.col * cls.width.col * cls.height.col
+        volume = cls.length.col.cast(pl.UInt64) * cls.width.col * cls.height.col
 
         # Lengths are in millimeters and 1e9 mm^3 is 1 cubic meter
         cubic_meter = 1e9
